@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: stockox-user-service
+
+
+  profiles:
+    active: dev      # will change to qa or prod when deploying
+
+    jpa:
+      hibernate:
+        ddl-auto: update          # overridden per profile (create-drop in dev)
+      show-sql: false             # overridden to true in dev
+      properties:
+        hibernate:
+          dialect: org.hibernate.dialect.PostgreSQLDialect
+          format_sql: true
+          default_batch_fetch_size: 20
+
+
+
+
+# ── App Custom Config ─────────────────────────────────────────
+app:
+  jwt:
+    # IMPORTANT: Change this secret in production! Min 32 chars.
+    secret: ${JWT_SECRET:ImsSecretKey2024!ChangeThisInProductionMin32Chars}
+    access-expiry-ms: 900000        # 15 minutes
+    refresh-expiry-ms: 604800000    # 7 days
+
+  otp:
+    expiry-minutes: 10
+    length: 6
+    max-attempts: 5               # lock after 5 wrong OTP attempts
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
