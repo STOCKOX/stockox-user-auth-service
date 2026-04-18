@@ -2,42 +2,90 @@ spring:
   application:
     name: stockox-user-service
 
-
   profiles:
-    active: dev      # will change to qa or prod when deploying
+    active: dev
 
-    jpa:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/stockox_users_dev
+    username: stockox_user
+    password: 1234
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop   # dev only
+    show-sql: true
+    open-in-view: false
+    properties:
       hibernate:
-        ddl-auto: update          # overridden per profile (create-drop in dev)
-      show-sql: false             # overridden to true in dev
-      properties:
-        hibernate:
-          dialect: org.hibernate.dialect.PostgreSQLDialect
-          format_sql: true
-          default_batch_fetch_size: 20
+        format_sql: true
+        default_batch_fetch_size: 20
 
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
 
+  # Mail (disabled safely)
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: lokeshchhara.mdu@gmail.com
+    password: "pphvknlvkpykolly"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
+  # Redis (optional - keep only if running)
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      repositories:
+        enabled: false   # 🔥 prevents repository warnings
 
-# ── App Custom Config ─────────────────────────────────────────
+server:
+  port: 8080
+
+# Disable Eureka fully for local
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+# Disable failing health checks
+management:
+  health:
+    mail:
+      enabled: false
+    redis:
+      enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+
 app:
   jwt:
-    # IMPORTANT: Change this secret in production! Min 32 chars.
     secret: ${JWT_SECRET:ImsSecretKey2024!ChangeThisInProductionMin32Chars}
-    access-expiry-ms: 900000        # 15 minutes
-    refresh-expiry-ms: 604800000    # 7 days
+    access-expiry-ms: 900000
+    refresh-expiry-ms: 604800000
 
   otp:
     expiry-minutes: 10
     length: 6
-    max-attempts: 5               # lock after 5 wrong OTP attempts
+    max-attempts: 5
 
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      show-details: when-authorized
+  app-name: "StockFlow India"
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}

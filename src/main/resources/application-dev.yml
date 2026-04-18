@@ -1,0 +1,35 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/stockox_users_dev
+    username: stockox_user
+    password: 1234
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true            # prints SQL in console - useful for debugging
+
+  # Disable Config Server for local development
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+
+# Disable Eureka for local development (optional - remove if you have Eureka running)
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+logging:
+  level:
+    com.ims: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+server:
+  port: 8081

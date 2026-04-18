@@ -23,7 +23,6 @@ public class UserResponse {
     private String role;
     private String status;
     private boolean emailVerified;
-
     // Company info
     private UUID tenantId;
     private String companyName;
