@@ -3,23 +3,24 @@ spring:
     name: stockox-user-service
 
   profiles:
-    active: dev
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
   datasource:
-    url: jdbc:postgresql://localhost:5433/stockox_users_dev
-    username: stockox_user
-    password: 1234
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/stockox_users_dev}
+    username: ${SPRING_DATASOURCE_USERNAME:stockox_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:1234}
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: create-drop   # dev only
-    show-sql: true
+      ddl-auto: update
+    show-sql: false
     open-in-view: false
     properties:
       hibernate:
         format_sql: true
         default_batch_fetch_size: 20
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
   cloud:
     config:
@@ -27,12 +28,11 @@ spring:
       import-check:
         enabled: false
 
-  # Mail (disabled safely)
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: lokeshchhara.mdu@gmail.com
-    password: "pphvknlvkpykolly"
+    host: ${MAIL_HOST:smtp.zoho.in}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:stockoxindia@zohomail.in}
+    password: ${MAIL_PASSWORD:3dURiNv0zR9u}
     properties:
       mail:
         smtp:
@@ -40,26 +40,23 @@ spring:
           starttls:
             enable: true
 
-  # Redis (optional - keep only if running)
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       timeout: 2000ms
       repositories:
-        enabled: false   # 🔥 prevents repository warnings
+        enabled: false
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8081}
 
-# Disable Eureka fully for local
 eureka:
   client:
     enabled: false
     register-with-eureka: false
     fetch-registry: false
 
-# Disable failing health checks
 management:
   health:
     mail:
@@ -73,19 +70,18 @@ management:
 
 logging:
   level:
-    org.springframework.security: DEBUG
-    org.hibernate.SQL: DEBUG
+    org.springframework.security: ${LOG_LEVEL:INFO}
+    org.hibernate.SQL: ${LOG_LEVEL:INFO}
+    com.stockox: ${LOG_LEVEL:INFO}
 
 app:
   jwt:
     secret: ${JWT_SECRET:ImsSecretKey2024!ChangeThisInProductionMin32Chars}
     access-expiry-ms: 900000
     refresh-expiry-ms: 604800000
-
   otp:
     expiry-minutes: 10
     length: 6
     max-attempts: 5
-
-  app-name: "StockFlow India"
+  app-name: "StockOx"
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
