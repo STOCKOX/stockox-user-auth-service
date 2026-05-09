@@ -29,10 +29,10 @@ spring:
 
   # Mail (disabled safely)
   mail:
-    host: smtp.gmail.com
+    host: smtp.zoho.in
     port: 587
-    username: lokeshchhara.mdu@gmail.com
-    password: "pphvknlvkpykolly"
+    username: stockoxindia@zohomail.in
+    password: 3dURiNv0zR9u
     properties:
       mail:
         smtp:
@@ -87,5 +87,5 @@ app:
     length: 6
     max-attempts: 5
 
-  app-name: "StockFlow India"
+  app-name: "StockOx"
   frontend-url: ${FRONTEND_URL:http://localhost:3000}

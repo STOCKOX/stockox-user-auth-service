@@ -1,6 +1,5 @@
 package com.stockox.service.impl;
 
-
 import com.stockox.dto.request.ChangePasswordRequest;
 import com.stockox.dto.request.InviteUserRequest;
 import com.stockox.dto.request.UpdateProfileRequest;
@@ -31,8 +30,8 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-
 public class UserServiceImpl implements UserService {
+
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -41,27 +40,21 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-
     public UserResponse getMyProfile(String userId) {
         User user = findById(userId);
         return toUserResponse(user);
     }
 
-
     @Override
     @Transactional
-
     public UserResponse updateMyProfile(String userId, UpdateProfileRequest req) {
         User user = findById(userId);
-
         user.setFirstName(req.getFirstName());
         user.setLastName(req.getLastName());
         user.setPhone(req.getPhone());
-
         User savedUser = userRepository.save(user);
         log.info("Profile updated for user: {}", user.getEmail());
         return toUserResponse(savedUser);
-
     }
 
     @Override
@@ -69,8 +62,11 @@ public class UserServiceImpl implements UserService {
         if (!req.getNewPassword().equals(req.getConfirmPassword())) {
             throw new BadRequestException("New passwords do not match.");
         }
+
         User user = findById(userId);
-        if(!passwordEncoder.matches(req.getConfirmPassword(), user.getPassword())) {
+
+        // ✅ FIXED: was req.getConfirmPassword() — must check currentPassword against DB
+        if (!passwordEncoder.matches(req.getCurrentPassword(), user.getPassword())) {
             throw new BadRequestException("Current password is incorrect.");
         }
 
@@ -82,36 +78,34 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(req.getNewPassword()));
         userRepository.save(user);
 
+        // Revoke all refresh tokens → forces re-login on all devices
         refreshTokenRepository.revokeAllByUserId(user.getId());
 
         log.info("Password changed for user: {}", user.getEmail());
     }
 
-    // ADMIN TEAM MANAGEMENT
+    // ── Admin team management ──────────────────────────────────────────
 
     @Override
     @Transactional
-
     public List<UserResponse> getAllUsersInCompany(String adminUserId) {
         User admin = findById(adminUserId);
         Tenant tenant = admin.getTenant();
-
         return userRepository.findAllByTenantAndDeletedFalseOrderByCreatedAtDesc(tenant)
                 .stream()
                 .map(this::toUserResponse)
                 .collect(Collectors.toList());
     }
+
     @Override
     @Transactional
     public UserResponse inviteUser(String adminUserId, InviteUserRequest req) {
         User admin = findById(adminUserId);
 
-
         if (req.getRole() == UserRole.ADMIN || req.getRole() == UserRole.SUPER_ADMIN) {
             throw new BadRequestException(
                     "You cannot invite a user with ADMIN role. Contact platform support.");
         }
-
 
         if (userRepository.existsByEmail(req.getEmail())) {
             throw new BadRequestException(
@@ -121,7 +115,6 @@ public class UserServiceImpl implements UserService {
         Role role = roleRepository.findByName(req.getRole())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Role not found: " + req.getRole()));
-
 
         String tempPassword = generateTempPassword();
 
@@ -138,25 +131,20 @@ public class UserServiceImpl implements UserService {
                 .build();
 
         invitedUser = userRepository.save(invitedUser);
-
         otpService.generateAndSend(invitedUser, OtpType.EMAIL_VERIFY);
-
         log.info("User invited: {} by admin: {}", req.getEmail(), admin.getEmail());
-
         return toUserResponse(invitedUser);
     }
-
 
     @Override
     @Transactional
     public UserResponse changeUserRole(String adminUserId, UUID targetUserId, UserRole newRole) {
-        User admin   = findById(adminUserId);
-        User target  = findUserInSameTenant(targetUserId, admin.getTenant());
+        User admin  = findById(adminUserId);
+        User target = findUserInSameTenant(targetUserId, admin.getTenant());
 
         if (admin.getId().equals(targetUserId)) {
             throw new BadRequestException("You cannot change your own role.");
         }
-
         if (newRole == UserRole.ADMIN || newRole == UserRole.SUPER_ADMIN) {
             throw new BadRequestException("Cannot assign ADMIN role here.");
         }
@@ -166,13 +154,10 @@ public class UserServiceImpl implements UserService {
 
         target.setRole(role);
         User saved = userRepository.save(target);
-
         log.info("Role changed for user: {} to: {} by admin: {}",
                 target.getEmail(), newRole, admin.getEmail());
-
         return toUserResponse(saved);
     }
-
 
     @Override
     @Transactional
@@ -186,8 +171,6 @@ public class UserServiceImpl implements UserService {
 
         target.setStatus(UserStatus.SUSPENDED);
         userRepository.save(target);
-
-        // Revoke all their tokens of the user and forces immediate logout
         refreshTokenRepository.revokeAllByUserId(targetUserId);
         log.info("User suspended: {} by admin: {}", target.getEmail(), admin.getEmail());
     }
@@ -203,9 +186,7 @@ public class UserServiceImpl implements UserService {
 
         target.setStatus(UserStatus.ACTIVE);
         userRepository.save(target);
-
         log.info("User activated: {} by admin: {}", target.getEmail(), admin.getEmail());
-
     }
 
     @Override
@@ -220,13 +201,11 @@ public class UserServiceImpl implements UserService {
         target.setDeleted(true);
         target.setStatus(UserStatus.DELETED);
         userRepository.save(target);
-
         refreshTokenRepository.revokeAllByUserId(targetUserId);
-
         log.info("User soft-deleted: {} by admin: {}", target.getEmail(), admin.getEmail());
     }
 
-    // -------------Private Helpers--------------------
+    // ── Private helpers ────────────────────────────────────────────────
 
     private User findUserInSameTenant(UUID targetUserId, Tenant adminTenant) {
         return userRepository.findByIdAndTenant(targetUserId, adminTenant)
@@ -234,19 +213,14 @@ public class UserServiceImpl implements UserService {
                         "User not found in your company."));
     }
 
-
     private String generateTempPassword() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 12);
     }
 
-
     private User findById(String userId) {
         return userRepository.findById(UUID.fromString(userId))
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "No user found"
-                ));
+                .orElseThrow(() -> new ResourceNotFoundException("No user found"));
     }
-
 
     private UserResponse toUserResponse(User user) {
         return UserResponse.builder()
