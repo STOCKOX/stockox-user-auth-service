@@ -3,7 +3,7 @@ package com.stockox.repository;
 import com.stockox.entity.OtpToken;
 import com.stockox.entity.User;
 import com.stockox.enums.OtpType;
-import io.lettuce.core.dynamic.annotation.Param;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

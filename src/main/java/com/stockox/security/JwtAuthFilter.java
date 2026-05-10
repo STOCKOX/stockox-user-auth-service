@@ -1,5 +1,6 @@
 package com.stockox.security;
 
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,18 +40,21 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 return;
             }
 
-            if (!jwtUtil.isValid(token)) {
+            // Parse JWT claims exactly ONCE — avoids 3 separate crypto-verify operations
+            Claims claims = jwtUtil.extractClaimsSafely(token);
+
+            if (claims == null) {
                 log.debug("Invalid JWT token for request: {}", request.getRequestURI());
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            if (!jwtUtil.isAccessToken(token)) {
+            if (!"access".equals(claims.get("type", String.class))) {
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            String userId = jwtUtil.extractUserId(token);
+            String userId = claims.getSubject();
             if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 UserDetails userDetails = userDetailsService.loadUserById(userId);

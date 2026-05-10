@@ -5,6 +5,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -26,8 +27,29 @@ public class JwtUtil {
     @Value("${app.jwt.refresh-expiry-ms}")
     private long refreshExpiryMs;
 
+    // Derived once at startup — eliminates repeated HMAC key construction per request
+    private SecretKey signingKey;
+
+    @PostConstruct
+    private void initSigningKey() {
+        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes());
+    }
+
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+        return signingKey;
+    }
+
+    /**
+     * Parses and validates a token in one shot, returning null on any failure.
+     * Use this in the filter to parse claims ONCE and derive all fields from the result.
+     */
+    public Claims extractClaimsSafely(String token) {
+        try {
+            return extractAllClaims(token);
+        } catch (JwtException | IllegalArgumentException e) {
+            log.debug("Invalid JWT token: {}", e.getMessage());
+            return null;
+        }
     }
 
     public String generateAccessToken(User user) {
