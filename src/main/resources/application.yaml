@@ -29,10 +29,10 @@ spring:
       import-check:
         enabled: false
   mail:
-    host: ${MAIL_HOST:smtp.zoho.in}
+    host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:stockoxindia@zohomail.in}
-    password: ${MAIL_PASSWORD:3dURiNv0zR9u}
+    username: ${MAIL_USERNAME:stockox.india@gmail.com}
+    password: ${MAIL_PASSWORD:choyezfewpeyevxv}
     properties:
       mail:
         smtp:
@@ -43,7 +43,6 @@ spring:
           connectiontimeout: 10000
           timeout: 10000
           writetimeout: 10000
-          from: ${MAIL_USERNAME:stockoxindia@zohomail.in}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
