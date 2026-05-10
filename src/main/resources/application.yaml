@@ -1,21 +1,18 @@
 spring:
   application:
     name: stockox-user-service
-
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:prod}
-
+    active: ${SPRING_PROFILES_ACTIVE:default}
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/stockox_users_dev}
+    username: ${SPRING_DATASOURCE_USERNAME:stockox_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:1234}
     driver-class-name: org.postgresql.Driver
     hikari:
       connection-timeout: 20000
       maximum-pool-size: 5
       minimum-idle: 1
       idle-timeout: 300000
-
   jpa:
     hibernate:
       ddl-auto: update
@@ -26,18 +23,16 @@ spring:
         format_sql: false
         default_batch_fetch_size: 20
         dialect: org.hibernate.dialect.PostgreSQLDialect
-
   cloud:
     config:
       enabled: false
       import-check:
         enabled: false
-
   mail:
     host: ${MAIL_HOST:smtp.zoho.in}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    username: ${MAIL_USERNAME:stockoxindia@zohomail.in}
+    password: ${MAIL_PASSWORD:3dURiNv0zR9u}
     properties:
       mail:
         smtp:
@@ -48,11 +43,7 @@ spring:
           connectiontimeout: 10000
           timeout: 10000
           writetimeout: 10000
-        # Required for Zoho: prevents "553 Relaying disallowed" error
-        from: ${MAIL_USERNAME}
-
-  # Redis — declared in RedisConfig but never actually called in user-service
-  # Health check disabled so startup doesn't fail if Redis is absent on Render
+          from: ${MAIL_USERNAME:stockoxindia@zohomail.in}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -73,7 +64,7 @@ eureka:
 management:
   health:
     mail:
-      enabled: false    # Don't fail /actuator/health if SMTP is slow
+      enabled: false
     redis:
       enabled: false
   endpoints:
@@ -86,16 +77,16 @@ logging:
     org.springframework.security: WARN
     org.hibernate.SQL: WARN
     com.stockox: INFO
-    org.springframework.mail: DEBUG  # Helps debug email delivery issues
+    org.springframework.mail: DEBUG
 
 app:
   jwt:
-    secret: ${JWT_SECRET}
-    access-expiry-ms: 900000       # 15 minutes
-    refresh-expiry-ms: 604800000   # 7 days
+    secret: ${JWT_SECRET:ImsSecretKey2024!ChangeThisInProductionMin32Chars}
+    access-expiry-ms: 900000
+    refresh-expiry-ms: 604800000
   otp:
     expiry-minutes: 10
     length: 6
     max-attempts: 5
   app-name: "StockOx"
-  frontend-url: ${FRONTEND_URL:https://www.stockox.co.in}
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
