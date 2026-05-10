@@ -20,82 +20,81 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class OtpServiceImpl implements OtpService {
 
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+  private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
-    private final OtpTokenRepository otpRepository;
+  private final OtpTokenRepository otpRepository;
 
-    
-    private final EmailService emailService;
+  private final EmailService emailService;
 
-    @Value("${app.otp.expiry-minutes}")
-    private int expiryMinutes;
+  @Value("${app.otp.expiry-minutes}")
+  private int expiryMinutes;
 
-    @Value("${app.otp.length}")
-    private int otpLength;
+  @Value("${app.otp.length}")
+  private int otpLength;
 
-    @Value("${app.otp.max-attempts}")
-    private int maxAttempts;
+  @Value("${app.otp.max-attempts}")
+  private int maxAttempts;
 
-    @Override
-    @Transactional
-    public void generateAndSend(User user, OtpType type) {
-        // Expire any existing unused OTPs of the same type
-        otpRepository.expireAllPreviousOtps(user, type);
+  @Override
+  @Transactional
+  public void generateAndSend(User user, OtpType type) {
+    // Expire any existing unused OTPs of the same type
+    otpRepository.expireAllPreviousOtps(user, type);
 
-        String code = generateCode();
+    String code = generateCode();
 
-        OtpToken otp = OtpToken.builder()
-                .user(user)
-                .code(code)
-                .type(type)
-                .used(false)
-                .attempts(0)
-                .expiresAt(LocalDateTime.now().plusMinutes(expiryMinutes))
-                .build();
+    OtpToken otp = OtpToken.builder()
+        .user(user)
+        .code(code)
+        .type(type)
+        .used(false)
+        .attempts(0)
+        .expiresAt(LocalDateTime.now().plusMinutes(expiryMinutes))
+        .build();
 
-        otpRepository.save(otp);
-        log.info("OTP generated for user: {} type: {}", user.getEmail(), type);
+    otpRepository.save(otp);
+    log.info("OTP generated for user: {} type: {}", user.getEmail(), type);
 
-        // Delegate to separate bean so @Async proxy is honoured
-        emailService.sendOtpEmailAsync(user.getEmail(), user.getFirstName(), code, type);
+    // Delegate to separate bean so @Async proxy is honoured
+    emailService.sendOtpEmailAsync(user.getEmail(), user.getFirstName(), code, type);
+  }
+
+  @Override
+  @Transactional
+  public void verify(User user, String code, OtpType type) {
+    OtpToken otp = otpRepository
+        .findLatestValidOtp(user, type, LocalDateTime.now())
+        .orElseThrow(() -> new BadRequestException(
+            "OTP has expired. Please request a new one."));
+
+    if (otp.isLocked(maxAttempts)) {
+      throw new BadRequestException(
+          "Too many wrong attempts. Please request a new OTP.");
     }
 
-    @Override
-    @Transactional
-    public void verify(User user, String code, OtpType type) {
-        OtpToken otp = otpRepository
-                .findLatestValidOtp(user, type, LocalDateTime.now())
-                .orElseThrow(() -> new BadRequestException(
-                        "OTP has expired. Please request a new one."));
+    if (!otp.getCode().equals(code)) {
+      otp.setAttempts(otp.getAttempts() + 1);
+      otpRepository.save(otp);
 
-        if (otp.isLocked(maxAttempts)) {
-            throw new BadRequestException(
-                    "Too many wrong attempts. Please request a new OTP.");
-        }
-
-        if (!otp.getCode().equals(code)) {
-            otp.setAttempts(otp.getAttempts() + 1);
-            otpRepository.save(otp);
-
-            int remaining = maxAttempts - otp.getAttempts();
-            if (remaining <= 0) {
-                throw new BadRequestException(
-                        "Too many wrong attempts. Please request a new OTP.");
-            }
-            throw new BadRequestException(
-                    String.format("Invalid OTP. %d attempt(s) remaining.", remaining));
-        }
-
-        otp.setUsed(true);
-        otpRepository.save(otp);
-        log.info("OTP verified for user: {} type: {}", user.getEmail(), type);
+      int remaining = maxAttempts - otp.getAttempts();
+      if (remaining <= 0) {
+        throw new BadRequestException(
+            "Too many wrong attempts. Please request a new OTP.");
+      }
+      throw new BadRequestException(
+          String.format("Invalid OTP. %d attempt(s) remaining.", remaining));
     }
 
-    private String generateCode() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < otpLength; i++) {
-            sb.append(SECURE_RANDOM.nextInt(10));
-        }
-        return sb.toString();
+    otp.setUsed(true);
+    otpRepository.save(otp);
+    log.info("OTP verified for user: {} type: {}", user.getEmail(), type);
+  }
+
+  private String generateCode() {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < otpLength; i++) {
+      sb.append(SECURE_RANDOM.nextInt(10));
     }
+    return sb.toString();
+  }
 }
