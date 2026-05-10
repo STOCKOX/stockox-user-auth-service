@@ -49,6 +49,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // public endpoints
                         .requestMatchers(PUBLIC_URLS).permitAll()
+                        .requestMatchers("/api/health").permitAll()
+
 
                         // Admin-only endpoints
                         .requestMatchers("/api/v1/users/admin/**")
